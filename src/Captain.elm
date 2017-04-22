@@ -48,6 +48,7 @@ type Msg
     | RightChoice
     | WrongChoice
     | CheckApproval
+    | Restart
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -73,6 +74,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        Restart ->
+            init
 
 
 dec : Int -> Int
@@ -127,6 +131,7 @@ viewGameOver : Model -> Html Msg
 viewGameOver model =
     div []
         [ h2 [] [ text "Game Over" ]
+        , button [ onClick Restart ] [ text "Restart" ]
         ]
 
 
