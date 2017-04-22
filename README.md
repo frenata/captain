@@ -2,7 +2,7 @@
 
 #### choices terminal
 
-* Only prompt for choice every X seconds
+* [x] Only prompt for choice every X seconds
 * Prompt an actual question from a random list
 * Prompt every X-Y seconds
 * make sure the timer restarts *after* choice is made

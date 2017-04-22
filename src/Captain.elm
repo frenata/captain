@@ -3,6 +3,7 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Time exposing (..)
 
 
 main =
@@ -20,6 +21,7 @@ main =
 
 type alias Model =
     { status : Status
+    , choice : String
     , action : String
     , id : Int
     }
@@ -36,6 +38,7 @@ type alias Status =
 init : ( Model, Cmd Msg )
 init =
     ( { status = newStatus
+      , choice = ""
       , action = "newgame"
       , id = 58
       }
@@ -53,7 +56,7 @@ newStatus =
 
 
 type Msg
-    = PromptChoice String
+    = PromptChoice Time
     | RightChoice
     | WrongChoice
     | CheckApproval
@@ -64,14 +67,14 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        PromptChoice choice ->
-            ( model, Cmd.none )
+        PromptChoice _ ->
+            ( { model | choice = "Make a choice" }, Cmd.none )
 
         RightChoice ->
-            ( { model | status = updateStatus "approval" 5 model.status }, Cmd.none )
+            ( { model | status = updateStatus "approval" 5 model.status, choice = "" }, Cmd.none )
 
         WrongChoice ->
-            { model | status = updateStatus "approval" -10 model.status }
+            { model | status = updateStatus "approval" -10 model.status, choice = "" }
                 |> update CheckApproval
 
         CheckApproval ->
@@ -138,11 +141,19 @@ viewGame model =
                 , li [] [ text ("Water: " ++ (toString model.status.water)) ]
                 ]
             ]
-        , div [ class "choices" ]
+        , viewChoice model
+        ]
+
+
+viewChoice : Model -> Html Msg
+viewChoice model =
+    if model.choice == "" then
+        div [] []
+    else
+        div [ class "choices" ]
             [ button [ onClick RightChoice ] [ text "Right Choice" ]
             , button [ onClick WrongChoice ] [ text "Wrong Choice" ]
             ]
-        ]
 
 
 viewWelcome : Model -> Html Msg
@@ -164,4 +175,4 @@ viewGameOver model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Time.every (5 * second) PromptChoice
