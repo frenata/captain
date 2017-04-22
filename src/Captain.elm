@@ -260,4 +260,4 @@ subscriptions model =
     if model.action == "choice" then
         Sub.none
     else
-        Time.every (5 * second) Tick
+        Time.every (1 * second) Tick
