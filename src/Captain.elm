@@ -19,24 +19,33 @@ main =
 
 
 type alias Model =
+    { status : Status
+    , action : String
+    , id : Int
+    }
+
+
+type alias Status =
     { approval : Int
     , food : Int
     , fuel : Int
     , water : Int
-    , status : String
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { approval = 100
-      , food = 80
-      , fuel = 80
-      , water = 80
-      , status = "playing"
+    ( { status = newStatus
+      , action = "newgame"
+      , id = 58
       }
     , Cmd.none
     )
+
+
+newStatus : Status
+newStatus =
+    { approval = 100, food = 80, fuel = 80, water = 80 }
 
 
 
@@ -49,6 +58,7 @@ type Msg
     | WrongChoice
     | CheckApproval
     | Restart
+    | Start
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -58,41 +68,46 @@ update msg model =
             ( model, Cmd.none )
 
         RightChoice ->
-            ( { model | approval = inc model.approval }, Cmd.none )
+            ( { model | status = updateStatus "approval" 5 model.status }, Cmd.none )
 
         WrongChoice ->
-            { model | approval = dec model.approval }
+            { model | status = updateStatus "approval" -10 model.status }
                 |> update CheckApproval
 
         CheckApproval ->
             ( { model
-                | status =
-                    if model.approval < 50 then
+                | action =
+                    if model.status.approval < 50 then
                         "gameover"
                     else
-                        model.status
+                        model.action
               }
             , Cmd.none
             )
 
         Restart ->
-            init
+            ( { model | status = newStatus, action = "newgame", id = model.id + 1 }, Cmd.none )
+
+        Start ->
+            ( { model | action = "playing" }, Cmd.none )
 
 
-dec : Int -> Int
-dec approval =
-    if approval >= 10 then
-        approval - 10
-    else
-        approval
+updateStatus : String -> Int -> Status -> Status
+updateStatus key change status =
+    case key of
+        "approval" ->
+            if withinLimits (status.approval + change) then
+                { status | approval = status.approval + change }
+            else
+                status
+
+        _ ->
+            status
 
 
-inc : Int -> Int
-inc approval =
-    if approval <= 95 then
-        approval + 5
-    else
-        approval
+withinLimits : Int -> Bool
+withinLimits num =
+    num >= 0 && num <= 100
 
 
 
@@ -101,9 +116,12 @@ inc approval =
 
 view : Model -> Html Msg
 view model =
-    case model.status of
+    case model.action of
         "playing" ->
             viewGame model
+
+        "newgame" ->
+            viewWelcome model
 
         _ ->
             viewGameOver model
@@ -114,16 +132,25 @@ viewGame model =
     div []
         [ div [ class "tracking" ]
             [ ul []
-                [ li [] [ text ("Approval: " ++ (toString model.approval)) ]
-                , li [] [ text ("Food: " ++ (toString model.food)) ]
-                , li [] [ text ("Fuel: " ++ (toString model.fuel)) ]
-                , li [] [ text ("Water: " ++ (toString model.water)) ]
+                [ li [] [ text ("Approval: " ++ (toString model.status.approval)) ]
+                , li [] [ text ("Food: " ++ (toString model.status.food)) ]
+                , li [] [ text ("Fuel: " ++ (toString model.status.fuel)) ]
+                , li [] [ text ("Water: " ++ (toString model.status.water)) ]
                 ]
             ]
         , div [ class "choices" ]
             [ button [ onClick RightChoice ] [ text "Right Choice" ]
             , button [ onClick WrongChoice ] [ text "Wrong Choice" ]
             ]
+        ]
+
+
+viewWelcome : Model -> Html Msg
+viewWelcome model =
+    div []
+        [ h1 [] [ text ("Welcome Captain #" ++ toString model.id) ]
+        , h2 [] [ text "to your Voluntary Captaincy training" ]
+        , button [ onClick Start ] [ text "Start" ]
         ]
 
 
