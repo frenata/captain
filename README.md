@@ -3,9 +3,9 @@
 #### choices terminal
 
 * [x] Only prompt for choice every X seconds
-* Prompt an actual question from a random list
+* [x] Prompt an actual question from a random list
 * Prompt every X-Y seconds
-* make sure the timer restarts *after* choice is made
+* [x] make sure the timer restarts *after* choice is made
 * At least some questions should impact resources
 * Events for low/0 resources
 

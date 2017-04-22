@@ -4,6 +4,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Time exposing (..)
+import Array exposing (..)
+import Random
 
 
 main =
@@ -21,8 +23,9 @@ main =
 
 type alias Model =
     { status : Status
-    , choice : String
+    , choice : Maybe Choice
     , action : String
+    , since : Maybe Time
     , id : Int
     }
 
@@ -35,20 +38,36 @@ type alias Status =
     }
 
 
+newStatus : Status
+newStatus =
+    { approval = 100, food = 80, fuel = 80, water = 80 }
+
+
 init : ( Model, Cmd Msg )
 init =
     ( { status = newStatus
-      , choice = ""
+      , choice = Nothing
       , action = "newgame"
+      , since = Nothing
       , id = 58
       }
     , Cmd.none
     )
 
 
-newStatus : Status
-newStatus =
-    { approval = 100, food = 80, fuel = 80, water = 80 }
+type alias Choice =
+    { question : String
+    , right : String
+    , wrong : String
+    }
+
+
+possibleChoices : Array Choice
+possibleChoices =
+    Array.fromList
+        [ Choice "test" "right" "wrong"
+        , Choice "test2" "right2" "wrong2"
+        ]
 
 
 
@@ -56,25 +75,29 @@ newStatus =
 
 
 type Msg
-    = PromptChoice Time
+    = Tick Time
     | RightChoice
     | WrongChoice
     | CheckApproval
     | Restart
     | Start
+    | GetChoice Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        PromptChoice _ ->
-            ( { model | choice = "Make a choice" }, Cmd.none )
+        Tick t ->
+            ( model, Random.generate GetChoice (Random.int 0 ((Array.length possibleChoices) - 1)) )
+
+        GetChoice num ->
+            ( { model | choice = Array.get num possibleChoices, action = "choice" }, Cmd.none )
 
         RightChoice ->
-            ( { model | status = updateStatus "approval" 5 model.status, choice = "" }, Cmd.none )
+            ( { model | status = updateStatus "approval" 5 model.status, choice = Nothing, action = "playing" }, Cmd.none )
 
         WrongChoice ->
-            { model | status = updateStatus "approval" -10 model.status, choice = "" }
+            { model | status = updateStatus "approval" -10 model.status, choice = Nothing, action = "playing" }
                 |> update CheckApproval
 
         CheckApproval ->
@@ -120,14 +143,14 @@ withinLimits num =
 view : Model -> Html Msg
 view model =
     case model.action of
-        "playing" ->
-            viewGame model
-
         "newgame" ->
             viewWelcome model
 
-        _ ->
+        "gameover" ->
             viewGameOver model
+
+        _ ->
+            viewGame model
 
 
 viewGame : Model -> Html Msg
@@ -147,13 +170,16 @@ viewGame model =
 
 viewChoice : Model -> Html Msg
 viewChoice model =
-    if model.choice == "" then
-        div [] []
-    else
-        div [ class "choices" ]
-            [ button [ onClick RightChoice ] [ text "Right Choice" ]
-            , button [ onClick WrongChoice ] [ text "Wrong Choice" ]
-            ]
+    case model.choice of
+        Just choice ->
+            div [ class "choices" ]
+                [ h4 [] [ text choice.question ]
+                , button [ onClick RightChoice ] [ text choice.right ]
+                , button [ onClick WrongChoice ] [ text choice.wrong ]
+                ]
+
+        Nothing ->
+            div [] []
 
 
 viewWelcome : Model -> Html Msg
@@ -175,4 +201,7 @@ viewGameOver model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every (5 * second) PromptChoice
+    if model.action == "choice" then
+        Sub.none
+    else
+        Time.every (5 * second) Tick
