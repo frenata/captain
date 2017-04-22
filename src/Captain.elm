@@ -257,7 +257,9 @@ viewGameOver model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.action == "choice" then
-        Sub.none
-    else
-        Time.every (1 * second) Tick
+    case model.action of
+        "playing" ->
+            Time.every (1 * second) Tick
+
+        _ ->
+            Sub.none
