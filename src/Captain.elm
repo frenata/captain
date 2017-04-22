@@ -102,9 +102,8 @@ possibleChoices =
 
 type Msg
     = Tick Time
-    | RightChoice (List Consequence)
-    | WrongChoice (List Consequence)
-    | CheckApproval
+    | HumanChoice (List Consequence)
+    | CheckStatus
     | Restart
     | Start
     | GetChoice Int
@@ -119,14 +118,11 @@ update msg model =
         GetChoice num ->
             ( { model | choice = Array.get num possibleChoices, action = "choice" }, Cmd.none )
 
-        RightChoice consequences ->
-            ( { model | status = applyConsequences consequences model.status, choice = Nothing, action = "playing" }, Cmd.none )
+        HumanChoice consequences ->
+            applyConsequences consequences model
+                |> update CheckStatus
 
-        WrongChoice consequences ->
-            { model | status = applyConsequences consequences model.status, choice = Nothing, action = "playing" }
-                |> update CheckApproval
-
-        CheckApproval ->
+        CheckStatus ->
             ( { model
                 | action =
                     if model.status.approval < 50 then
@@ -144,9 +140,13 @@ update msg model =
             ( { model | action = "playing" }, Cmd.none )
 
 
-applyConsequences : List Consequence -> Status -> Status
-applyConsequences consequences status =
-    List.foldr (updateStatus) status consequences
+applyConsequences : List Consequence -> Model -> Model
+applyConsequences consequences model =
+    { model
+        | status = List.foldr (updateStatus) model.status consequences
+        , choice = Nothing
+        , action = "playing"
+    }
 
 
 updateStatus : Consequence -> Status -> Status
@@ -160,36 +160,31 @@ updateStatus consequence status =
     in
         case resource of
             "approval" ->
-                if withinLimits (status.approval + change) then
-                    { status | approval = status.approval + change }
-                else
-                    status
+                { status | approval = withinLimits status.approval change }
 
             "food" ->
-                if withinLimits (status.food + change) then
-                    { status | food = status.food + change }
-                else
-                    status
+                { status | food = withinLimits status.food change }
 
             "fuel" ->
-                if withinLimits (status.fuel + change) then
-                    { status | fuel = status.fuel + change }
-                else
-                    status
+                { status | fuel = withinLimits status.fuel change }
 
             "water" ->
-                if withinLimits (status.water + change) then
-                    { status | water = status.water + change }
-                else
-                    status
+                { status | water = withinLimits status.water change }
 
             _ ->
                 status
 
 
-withinLimits : Int -> Bool
-withinLimits num =
-    num >= 0 && num <= 100
+withinLimits : Int -> Int -> Int
+withinLimits current change =
+    let
+        num =
+            current + change
+    in
+        if num >= 0 && num <= 100 then
+            num
+        else
+            current
 
 
 
@@ -230,8 +225,8 @@ viewChoice model =
         Just choice ->
             div [ class "choices" ]
                 [ h4 [] [ text choice.question ]
-                , button [ onClick (RightChoice choice.right.consequences) ] [ text choice.right.text ]
-                , button [ onClick (WrongChoice choice.wrong.consequences) ] [ text choice.wrong.text ]
+                , button [ onClick (HumanChoice choice.right.consequences) ] [ text choice.right.text ]
+                , button [ onClick (HumanChoice choice.wrong.consequences) ] [ text choice.wrong.text ]
                 ]
 
         Nothing ->
