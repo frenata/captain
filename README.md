@@ -7,7 +7,7 @@
 * Prompt every X-Y seconds
 * [x] make sure the timer restarts *after* choice is made
 * [x] At least some questions should impact resources
-* Events for low/0 resources
+* [x] Events for low/0 resources
 
 #### rec terminal
 

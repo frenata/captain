@@ -77,20 +77,20 @@ type alias Consequence =
 possibleChoices : Array Choice
 possibleChoices =
     Array.fromList
-        [ Choice "test"
-            (Answer "right"
+        [ Choice "A group of passengers is asking for extra food to celebrate a holy day."
+            (Answer "Give them the food, it'll boost morale."
                 [ Consequence "approval" 5
-                , Consequence "food" -20
+                , Consequence "food" -10
                 ]
             )
-            (Answer "wrong"
+            (Answer "We don't have any to spare."
                 [ Consequence "approval" -10 ]
             )
-        , Choice "test2"
-            (Answer "right2"
+        , Choice "An engineer is requesting promotion."
+            (Answer "Promotions are granted to those who earn them."
                 [ Consequence "approval" 5 ]
             )
-            (Answer "wrong2"
+            (Answer "Promise to arrange a promotion for him."
                 [ Consequence "approval" -10 ]
             )
         ]
@@ -126,7 +126,13 @@ update msg model =
             ( { model
                 | action =
                     if model.status.approval < 50 then
-                        "gameover"
+                        "low-approval"
+                    else if model.status.water == 0 then
+                        "no-water"
+                    else if model.status.food == 0 then
+                        "no-food"
+                    else if model.status.fuel == 0 then
+                        "no-fuel"
                     else
                         model.action
               }
@@ -197,7 +203,16 @@ view model =
         "newgame" ->
             viewWelcome model
 
-        "gameover" ->
+        "low-approval" ->
+            viewGameOver model
+
+        "no-water" ->
+            viewGameOver model
+
+        "no-food" ->
+            viewGameOver model
+
+        "no-fuel" ->
             viewGameOver model
 
         _ ->
@@ -244,10 +259,28 @@ viewWelcome model =
 
 viewGameOver : Model -> Html Msg
 viewGameOver model =
-    div []
-        [ h2 [] [ text "Game Over" ]
-        , button [ onClick Restart ] [ text "Restart" ]
-        ]
+    let
+        message =
+            case model.action of
+                "low-approval" ->
+                    "I'm sorry, due to low approval you have been dismissed from your position."
+
+                "no-water" ->
+                    "Without adequate water reserves, the citizens of the ship quickly die off. The computer core, lacking any human to make choices for it, eventually goes mad and flies into a sun."
+
+                "no-food" ->
+                    "First food riots break out, followed by cannibalism. You are blamed and one of the first to go. Captains continue to be selected from the dwindling population, but how many will be left by the time a new home is reached?"
+
+                "no-fuel" ->
+                    "The ship adrift, the crowds rush for any remaining lifeboats. The bitter remaining population breakdown into rival gangs, warring for territory inside the now lifeless ship."
+
+                _ ->
+                    "After many long years of always making the right choice, you have died at your post. You will be remembered."
+    in
+        div []
+            [ h2 [] [ text message ]
+            , button [ onClick Restart ] [ text "Restart" ]
+            ]
 
 
 subscriptions : Model -> Sub Msg
