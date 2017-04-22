@@ -57,16 +57,42 @@ init =
 
 type alias Choice =
     { question : String
-    , right : String
-    , wrong : String
+    , right : Answer
+    , wrong : Answer
+    }
+
+
+type alias Answer =
+    { text : String
+    , consequences : List Consequence
+    }
+
+
+type alias Consequence =
+    { resource : String
+    , change : Int
     }
 
 
 possibleChoices : Array Choice
 possibleChoices =
     Array.fromList
-        [ Choice "test" "right" "wrong"
-        , Choice "test2" "right2" "wrong2"
+        [ Choice "test"
+            (Answer "right"
+                [ Consequence "approval" 5
+                , Consequence "food" -20
+                ]
+            )
+            (Answer "wrong"
+                [ Consequence "approval" -10 ]
+            )
+        , Choice "test2"
+            (Answer "right2"
+                [ Consequence "approval" 5 ]
+            )
+            (Answer "wrong2"
+                [ Consequence "approval" -10 ]
+            )
         ]
 
 
@@ -76,8 +102,8 @@ possibleChoices =
 
 type Msg
     = Tick Time
-    | RightChoice
-    | WrongChoice
+    | RightChoice (List Consequence)
+    | WrongChoice (List Consequence)
     | CheckApproval
     | Restart
     | Start
@@ -93,11 +119,11 @@ update msg model =
         GetChoice num ->
             ( { model | choice = Array.get num possibleChoices, action = "choice" }, Cmd.none )
 
-        RightChoice ->
-            ( { model | status = updateStatus "approval" 5 model.status, choice = Nothing, action = "playing" }, Cmd.none )
+        RightChoice consequences ->
+            ( { model | status = applyConsequences consequences model.status, choice = Nothing, action = "playing" }, Cmd.none )
 
-        WrongChoice ->
-            { model | status = updateStatus "approval" -10 model.status, choice = Nothing, action = "playing" }
+        WrongChoice consequences ->
+            { model | status = applyConsequences consequences model.status, choice = Nothing, action = "playing" }
                 |> update CheckApproval
 
         CheckApproval ->
@@ -118,17 +144,47 @@ update msg model =
             ( { model | action = "playing" }, Cmd.none )
 
 
-updateStatus : String -> Int -> Status -> Status
-updateStatus key change status =
-    case key of
-        "approval" ->
-            if withinLimits (status.approval + change) then
-                { status | approval = status.approval + change }
-            else
-                status
+applyConsequences : List Consequence -> Status -> Status
+applyConsequences consequences status =
+    List.foldr (updateStatus) status consequences
 
-        _ ->
-            status
+
+updateStatus : Consequence -> Status -> Status
+updateStatus consequence status =
+    let
+        resource =
+            consequence.resource
+
+        change =
+            consequence.change
+    in
+        case resource of
+            "approval" ->
+                if withinLimits (status.approval + change) then
+                    { status | approval = status.approval + change }
+                else
+                    status
+
+            "food" ->
+                if withinLimits (status.food + change) then
+                    { status | food = status.food + change }
+                else
+                    status
+
+            "fuel" ->
+                if withinLimits (status.fuel + change) then
+                    { status | fuel = status.fuel + change }
+                else
+                    status
+
+            "water" ->
+                if withinLimits (status.water + change) then
+                    { status | water = status.water + change }
+                else
+                    status
+
+            _ ->
+                status
 
 
 withinLimits : Int -> Bool
@@ -174,8 +230,8 @@ viewChoice model =
         Just choice ->
             div [ class "choices" ]
                 [ h4 [] [ text choice.question ]
-                , button [ onClick RightChoice ] [ text choice.right ]
-                , button [ onClick WrongChoice ] [ text choice.wrong ]
+                , button [ onClick (RightChoice choice.right.consequences) ] [ text choice.right.text ]
+                , button [ onClick (WrongChoice choice.wrong.consequences) ] [ text choice.wrong.text ]
                 ]
 
         Nothing ->

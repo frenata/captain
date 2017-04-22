@@ -6,7 +6,7 @@
 * [x] Prompt an actual question from a random list
 * Prompt every X-Y seconds
 * [x] make sure the timer restarts *after* choice is made
-* At least some questions should impact resources
+* [x] At least some questions should impact resources
 * Events for low/0 resources
 
 #### rec terminal
